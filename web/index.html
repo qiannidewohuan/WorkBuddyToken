@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2563EB">
+<title>WorkBuddy 凭据助手 · Web 预览版</title>
+<style>
+  :root{
+    --primary:#2563EB; --primary-dark:#1D4ED8; --bg:#F4F6FB; --card:#fff;
+    --text:#1F2937; --muted:#6B7280; --line:#E5E7EB; --ok:#16A34A; --err:#DC2626;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{max-width:640px;margin:0 auto;padding:16px 16px 40px}
+  .hero{background:linear-gradient(135deg,#2563EB,#4F46E5);color:#fff;border-radius:18px;
+    padding:22px 20px;box-shadow:0 8px 24px rgba(37,99,235,.22)}
+  .hero h1{margin:0;font-size:21px;letter-spacing:.3px}
+  .hero p{margin:6px 0 0;font-size:12px;opacity:.9}
+  .hero .tag{display:inline-block;margin-top:12px;background:rgba(255,255,255,.18);
+    border-radius:8px;padding:5px 10px;font-size:11px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:16px;margin-top:12px;box-shadow:0 2px 8px rgba(16,24,40,.03)}
+  .card h2{margin:0 0 12px;font-size:15px}
+  .row{display:flex;gap:8px;align-items:center}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px}
+  input{width:100%;border:1px solid #D1D5DB;background:#F9FAFB;border-radius:10px;
+    padding:12px;font-size:15px;color:var(--text);outline:none;font-family:inherit}
+  input:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+  button{border:0;border-radius:10px;padding:12px 14px;font-size:14px;font-family:inherit;
+    cursor:pointer;transition:.15s;white-space:nowrap}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  .btn{background:var(--primary);color:#fff;width:100%;font-weight:600}
+  .btn:active:not(:disabled){background:var(--primary-dark)}
+  .btn-ghost{background:#fff;color:var(--primary);border:1px solid #BFDBFE;font-size:12px;padding:9px 10px}
+  .btn-ghost:active{background:#DBEAFE}
+  .btn-danger{color:var(--err)}
+  .mt{margin-top:10px}
+  .chk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:10px}
+  .chk input{width:auto;accent-color:var(--primary)}
+  #log{background:#0F172A;color:#CBD5E1;border-radius:10px;padding:12px;height:200px;
+    overflow:auto;font:11px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace}
+  #log .line{white-space:pre-wrap;word-break:break-all}
+  #log .ok{color:#86EFAC}#log .err{color:#FCA5A5}#log .info{color:#93C5FD}
+  .head{display:flex;justify-content:space-between;align-items:center;gap:6px}
+  .head .cnt{font-size:12px;color:var(--muted)}
+  .logbar{display:flex;gap:5px}
+  .logbar button{font-size:11px;padding:6px 9px}
+  .empty{background:#EEF4FF;color:var(--muted);border-radius:10px;padding:14px;font-size:12px;margin-top:8px}
+  .acct{background:#EEF4FF;border-radius:10px;padding:12px;margin-top:8px}
+  .acct .l1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .acct .ph{font-weight:700;font-size:15px}
+  .acct .ex{font-size:11px;color:var(--muted);text-align:right}
+  .acct .meta{font-size:11px;color:var(--muted);margin-top:3px}
+  .acct .ops{display:flex;gap:6px;margin-top:10px}
+  .acct .ops button{flex:1}
+  .actions{display:flex;gap:6px;margin-top:14px}
+  .actions button{flex:1}
+  .note{font-size:11px;color:var(--muted);line-height:1.8;margin-top:14px}
+  .warn{background:#FEF3C7;color:#92400E;border-radius:10px;padding:10px 12px;font-size:11px;margin-top:12px}
+  .pill{display:inline-block;background:#DBEAFE;color:var(--primary-dark);border-radius:6px;
+    padding:2px 7px;font-size:11px;margin-left:6px}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+    background:#111827;color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;
+    opacity:0;pointer-events:none;transition:.25s;z-index:9;max-width:88vw;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>WorkBuddy 凭据助手</h1>
+    <p>短信登录 · 提取 AT:RT · 多账号管理 · 一键写入青龙</p>
+    <span class="tag">Web 预览版 <span id="modePill" class="pill">本地代理</span></span>
+  </div>
+
+  <div class="warn">
+    ⚠️ 预览版为了免安装，把凭据以<strong>明文</strong>存在浏览器 localStorage。仅建议在本人可信设备上临时使用；
+    长期使用请安装同仓库的 Android App（凭据用 Android Keystore 加密保存）。
+  </div>
+
+  <!-- ① 获取凭据 -->
+  <div class="card">
+    <h2>① 获取凭据</h2>
+    <label for="phone">手机号</label>
+    <input id="phone" type="tel" inputmode="numeric" maxlength="11" placeholder="11 位手机号" autocomplete="tel">
+    <button id="btnSend" class="btn mt">发送验证码</button>
+
+    <label for="code">短信验证码</label>
+    <input id="code" type="text" inputmode="numeric" maxlength="6" placeholder="6 位验证码（5 分钟内有效）">
+    <label class="chk"><input type="checkbox" id="verify"> 登录后用 RT 试刷一次，验证凭据可用</label>
+    <button id="btnLogin" class="btn mt" style="margin-top:12px">登录并获取 Token</button>
+  </div>
+
+  <!-- ② 日志 -->
+  <div class="card">
+    <div class="head">
+      <h2 style="margin:0">② 运行日志</h2>
+      <div class="logbar">
+        <button id="btnLogCopy" class="btn-ghost">复制日志</button>
+        <button id="btnLogSave" class="btn-ghost">下载 .log</button>
+        <button id="btnClear" class="btn-ghost btn-danger">清空</button>
+      </div>
+    </div>
+    <div id="log" style="margin-top:10px"></div>
+    <div class="note" style="margin-top:6px">
+      日志持久化在浏览器 localStorage（刷新/重开仍可回看），失败会记录异常堆栈与 HTTP 请求链。
+      导出内容已自动脱敏，不含手机号、令牌或密码，可直接用于排查。
+    </div>
+  </div>
+
+  <!-- ③ 账号 -->
+  <div class="card">
+    <div class="head"><h2 style="margin:0">③ 已保存账号</h2><span class="cnt" id="cnt">共 0 个</span></div>
+    <div id="list"></div>
+    <div class="actions">
+      <button class="btn-ghost" id="btnCopyAll">复制全部</button>
+      <button class="btn-ghost" id="btnPush">推送青龙</button>
+      <button class="btn-ghost" id="btnCfg">面板设置</button>
+    </div>
+    <div id="panelBox" style="display:none">
+      <label for="pbase">青龙面板地址</label>
+      <input id="pbase" placeholder="http://192.168.1.10:5700">
+      <label for="puser">用户名</label>
+      <input id="puser" placeholder="admin" autocomplete="off">
+      <label for="ppass">密码</label>
+      <input id="ppass" type="password" placeholder="面板密码" autocomplete="off">
+      <div class="actions">
+        <button class="btn-ghost" id="btnSaveCfg">保存配置</button>
+        <button class="btn-ghost btn-danger" id="btnClearCfg">清除</button>
+      </div>
+      <div class="note">面板账号密码仅存于本机浏览器，并只发给你自己填写的局域网地址。手机需与面板在同一 WiFi。地址省略 http:// 时会自动补全。</div>
+    </div>
+  </div>
+
+  <div class="note">
+    接口与 <code>workbuddy_login.py</code> 完全一致：<code>/v2/plugin/login/send-sms</code> →
+    <code>/v2/plugin/login/token</code> →（可选）<code>token/refresh</code>。
+    青龙变量 <code>WORKBUDDY_REFRESH_TOKEN</code> 一行一个账号，按手机号幂等覆盖。
+    本页所有请求由本地 Node 代理转发（服务端只写脱敏诊断日志，不落盘、不打印请求体），浏览器因此不受 CORS 限制。
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 与 Node 代理共用同一份脱敏/地址规范化实现 -->
+<script src="/diag.js"></script>
+<script>
+'use strict';
+/* 用 file:// 直接打开时 /diag.js 加载不到，这里给一份最小兜底，保证日志仍然脱敏 */
+if (typeof WbDiag === 'undefined') {
+  window.WbDiag = {
+    VERSION: 'inline-fallback',
+    sanitize: function (s) {
+      return String(s == null ? '' : s)
+        .replace(/("(?:password|pass|access_token|refresh_token|accessToken|refreshToken|token|at|rt|sms_code|code|secret|authorization)"\s*:\s*")[^"]*(")/gi, '$1***$2')
+        .replace(/(Bearer\s+)[A-Za-z0-9_\-.=]+/gi, '$1***')
+        .replace(/eyJ[A-Za-z0-9_\-.=]{20,}/g, 'eyJ***[已脱敏]')
+        .replace(/(^|[^\d])(1[3-9]\d{9})([^\d]|$)/g, function (m, a, p, b) { return a + p.slice(0,3) + '****' + p.slice(7) + b; });
+    },
+    normalizeBase: function (raw) {
+      var b = String(raw == null ? '' : raw).trim().replace(/\s+/g, '');
+      if (!b) throw new Error('面板地址为空');
+      if (!/^https?:\/\//i.test(b)) b = 'http://' + b;
+      b = b.replace(/\/+$/, '');
+      if (!/\/api$/i.test(b)) b += '/api';
+      return b;
+    },
+  };
+}
+
+const $ = (s) => document.querySelector(s);
+const KEY_A = 'wb_accounts_v1', KEY_P = 'wb_panel_v1', KEY_LOG = 'wb_diag_logs_v1';
+const MAX_LOGS = 400, MAX_TEXT = 2000;
+let cd = 0, cdTimer = null, busy = false;
+const safe = (s) => WbDiag.sanitize(s);
+
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function maskPhone(p){ return !p || p.length < 7 ? String(p||'') : p.slice(0,3) + '****' + p.slice(-4); }
+function maskTok(t){ return !t ? '(空)' : t.slice(0,8) + '…(' + t.length + ' 字符)'; }
+function validPhone(p){ return /^1[3-9]\d{9}$/.test(p || ''); }
+
+// ---------------------------------------------------------------- 持久化诊断日志
+function loadLogs(){
+  try { const a = JSON.parse(localStorage.getItem(KEY_LOG) || '[]'); return Array.isArray(a) ? a : []; }
+  catch(e){ return []; }
+}
+function pushLog(entry){
+  const a = loadLogs();
+  a.push(entry);
+  if (a.length > MAX_LOGS) a.splice(0, a.length - MAX_LOGS);
+  try { localStorage.setItem(KEY_LOG, JSON.stringify(a)); } catch(e){}
+}
+function appendLine(entry){
+  const el = $('#log'), d = document.createElement('div');
+  d.className = 'line ' + (entry.cls || '');
+  d.textContent = '[' + new Date(entry.t).toTimeString().slice(0,8) + '] ' + entry.msg;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+function log(msg, cls, extra){
+  const lv = cls === 'err' ? 'E' : cls === 'warn' ? 'W' : 'I';
+  const entry = {
+    t: Date.now(), lv, cls: cls || '', tag: (extra && extra.tag) || 'UI',
+    msg: safe(String(msg)).slice(0, MAX_TEXT),
+  };
+  if (extra) entry.extra = safe(JSON.stringify(extra)).slice(0, MAX_TEXT);
+  appendLine(entry);
+  pushLog(entry);
+}
+function logErr(tag, msg, err){
+  const extra = {
+    tag, name: err && err.name, message: err && err.message,
+    stack: err && err.stack ? String(err.stack).split('\n').slice(0, 8).join('\n') : '',
+  };
+  log('❌ ' + msg, 'err', extra);
+  log('   完整诊断已保存，可点「复制日志 / 下载 .log」导出', 'err', { tag });
+}
+function restoreLogs(){
+  const a = loadLogs().slice(-200);
+  for (const e of a) appendLine(e);
+  const el = $('#log'); el.scrollTop = el.scrollHeight;
+}
+function exportDiagText(){
+  const out = [
+    'WorkBuddy 凭据助手 · Web 诊断日志',
+    '导出时间: ' + new Date().toLocaleString('zh-CN', { hour12:false }),
+    '诊断模块: WbDiag ' + WbDiag.VERSION,
+    '环境: ' + safe(typeof navigator !== 'undefined' ? navigator.userAgent : '').slice(0, 160),
+    '说明: 已自动脱敏（手机号/令牌/密码），不含凭据明文。',
+    '------------------------------------------------------------',
+  ];
+  for (const e of loadLogs()) {
+    out.push('[' + new Date(e.t).toLocaleString('zh-CN', { hour12:false }) + '] '
+      + e.lv + '/' + e.tag + ' ' + e.msg);
+    if (e.extra) out.push('    ' + e.extra);
+  }
+  return out.join('\n') + '\n';
+}
+
+function loadA(){ try { return JSON.parse(localStorage.getItem(KEY_A) || '[]'); } catch(e){ return []; } }
+function saveA(a){ localStorage.setItem(KEY_A, JSON.stringify(a)); render(); }
+function loadP(){ try { return JSON.parse(localStorage.getItem(KEY_P) || '{}'); } catch(e){ return {}; } }
+function saveP(p){ localStorage.setItem(KEY_P, JSON.stringify(p)); }
+
+function jwt(t){
+  try {
+    let s = t.split('.')[1]; s = s.replace(/-/g,'+').replace(/_/g,'/');
+    while (s.length % 4) s += '=';
+    const bin = atob(s), bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch(e){ return {}; }
+}
+function expText(exp){
+  if (!exp) return '未知';
+  return new Date(exp * 1000).toLocaleString('zh-CN', { hour12:false });
+}
+function remain(exp){
+  if (!exp) return '';
+  const d = exp * 1000 - Date.now();
+  if (d <= 0) return '已过期';
+  const day = Math.floor(d / 86400000);
+  if (day >= 1) return '剩余 ' + day + ' 天';
+  const h = Math.floor(d / 3600000);
+  return h >= 1 ? '剩余 ' + h + ' 小时' : '剩余 ' + Math.max(1, Math.floor(d/60000)) + ' 分钟';
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function api(path, body){
+  const t0 = Date.now();
+  const bodyBytes = JSON.stringify(body || {}).length;
+  log('→ POST ' + path + ' 开始（请求体 ' + bodyBytes + ' 字符，内容不记录）', 'info', { tag:'代理', path, bodyBytes });
+  try {
+    const r = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {}) });
+    if (!r.ok) throw new Error('本地代理返回 HTTP ' + r.status);
+    const j = await r.json();
+    log('← POST ' + path + ' HTTP ' + r.status + ' / ' + (Date.now() - t0) + 'ms / '
+      + (j && j.ok ? '业务成功' : '业务失败'), j && j.ok ? 'ok' : 'err',
+      { tag:'代理', path, status:r.status, ms:Date.now() - t0, ok: !!(j && j.ok) });
+    return j;
+  } catch(e){
+    logErr('代理', '本地代理请求失败：' + e.message, e);
+    throw e;
+  }
+}
+async function copyText(text){
+  try {
+    if (navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(text); return true; }
+  } catch(e){}
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch(e){}
+  document.body.removeChild(ta); return ok;
+}
+
+function render(){
+  const a = loadA();
+  $('#cnt').textContent = '共 ' + a.length + ' 个';
+  const box = $('#list');
+  if (!a.length){
+    box.innerHTML = '<div class="empty">暂无账号。登录成功后凭据保存在本机浏览器，可随时复制或推送到青龙。</div>';
+    return;
+  }
+  box.innerHTML = a.map((x, i) => `
+    <div class="acct">
+      <div class="l1"><span class="ph">${escapeHtml(maskPhone(x.phone))}</span>
+        <span class="ex">AT 至 ${escapeHtml(expText(x.exp))}<br>${escapeHtml(remain(x.exp))}</span></div>
+      <div class="meta">用户 ${escapeHtml(x.user || '—')} · AT ${x.at.length} 字符 · 获取于 ${escapeHtml(x.at2 || x.loginAt || '—')}</div>
+      <div class="ops">
+        <button class="btn-ghost" data-act="copy" data-i="${i}">复制</button>
+        <button class="btn-ghost" data-act="share" data-i="${i}">分享</button>
+        <button class="btn-ghost btn-danger" data-act="del" data-i="${i}">删除</button>
+      </div>
+    </div>`).join('');
+}
+
+$('#list').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const a = loadA(), x = a[+b.dataset.i]; if (!x) return;
+  const line = x.phone + ':' + x.at + ':' + x.rt;
+  if (b.dataset.act === 'copy'){
+    toast((await copyText(line)) ? '已复制该账号 env 行' : '复制失败，请手动选择');
+  } else if (b.dataset.act === 'share'){
+    if (navigator.share){ try { await navigator.share({ title:'WORKBUDDY_REFRESH_TOKEN', text: line }); } catch(err){} }
+    else { await copyText(line); toast('已复制到剪贴板（当前浏览器不支持系统分享）'); }
+  } else if (b.dataset.act === 'del'){
+    if (!confirm('确定删除 ' + maskPhone(x.phone) + ' 的本地凭据？\n仅删除浏览器副本，青龙变量不受影响。')) return;
+    a.splice(+b.dataset.i, 1); saveA(a); log('🗑️ 已删除 ' + maskPhone(x.phone), 'info', { tag:'账号' });
+  }
+});
+
+function startCd(sec){
+  cd = sec; clearInterval(cdTimer);
+  const tick = () => {
+    const b = $('#btnSend');
+    if (cd <= 0){ b.disabled = false; b.textContent = '发送验证码'; clearInterval(cdTimer); return; }
+    b.disabled = true; b.textContent = '重新发送 (' + cd + 's)'; cd--;
+  };
+  tick(); cdTimer = setInterval(tick, 1000);
+}
+function setBusy(v){
+  busy = v;
+  $('#btnLogin').disabled = v;
+  $('#btnLogin').textContent = v ? '处理中…' : '登录并获取 Token';
+  $('#btnPush').disabled = v;
+}
+
+$('#btnSend').addEventListener('click', async () => {
+  const phone = $('#phone').value.trim();
+  if (!validPhone(phone)){ toast('请输入正确的 11 位手机号'); return; }
+  if (busy) return;
+  log('📤 正在向 ' + maskPhone(phone) + ' 发送验证码…', 'info', { tag:'发码' });
+  try {
+    const r = await api('/api/send-sms', { phone });
+    if (!r.ok){ logErr('发码', r.msg, { name:'SendSmsError', message:r.msg }); return; }
+    log('✅ 验证码已发送（有效期 ' + r.expires_in + ' 秒）', 'ok', { tag:'发码' });
+    startCd(60); $('#code').focus(); toast('验证码已发送');
+  } catch(e){ /* api() 已记录 */ }
+});
+
+$('#btnLogin').addEventListener('click', async () => {
+  if (busy) return;
+  const phone = $('#phone').value.trim(), code = $('#code').value.trim();
+  if (!validPhone(phone)){ toast('请输入正确的 11 位手机号'); return; }
+  if (code.length < 4){ toast('请输入收到的短信验证码'); return; }
+  setBusy(true); log('🔐 正在提交登录…', 'info', { tag:'登录' });
+  try {
+    const r = await api('/api/login', { phone, code, verify: $('#verify').checked });
+    if (!r.ok){ logErr('登录', r.msg, { name:'LoginError', message:r.msg }); return; }
+    const j = jwt(r.at);
+    const a = loadA(), item = {
+      phone, at: r.at, rt: r.rt,
+      user: j.preferred_username || '', sub: j.sub || '',
+      exp: j.exp || 0, loginAt: new Date().toLocaleString('zh-CN', { hour12:false }),
+    };
+    const i = a.findIndex(x => x.phone === phone);
+    if (i >= 0) a[i] = item; else a.push(item);
+    saveA(a);
+    log('✅ 登录成功 · ' + maskPhone(phone) + (item.user ? ' · 用户 ' + item.user : ''), 'ok', { tag:'登录' });
+    log('   AT ' + maskTok(r.at) + ' | RT ' + maskTok(r.rt), 'ok', { tag:'登录' });
+    log('   AT 过期 ' + expText(item.exp) + '（' + remain(item.exp) + '）', 'ok', { tag:'登录' });
+    log('   ' + r.verifyMsg, 'info', { tag:'登录' });
+    log('   💾 ' + (i >= 0 ? '已覆盖同手机号旧凭据' : '已新增账号'), 'info', { tag:'登录' });
+    $('#code').value = ''; toast('凭据已保存');
+  } catch(e){ /* api() 已记录 */ }
+  finally { setBusy(false); }
+});
+
+$('#btnCopyAll').addEventListener('click', async () => {
+  const a = loadA(); if (!a.length){ toast('还没有保存的账号'); return; }
+  const text = a.map(x => x.phone + ':' + x.at + ':' + x.rt).join('\n');
+  toast((await copyText(text)) ? '已复制全部 ' + a.length + ' 个账号' : '复制失败');
+});
+$('#btnLogCopy').addEventListener('click', async () => {
+  toast((await copyText(exportDiagText())) ? '已复制诊断日志（已脱敏）' : '复制失败，请手动选择');
+});
+$('#btnLogSave').addEventListener('click', async () => {
+  const text = exportDiagText();
+  const name = 'workbuddy-diag-' + new Date().toISOString().slice(0,10) + '.log';
+  const canDownload = typeof Blob === 'function' && typeof URL !== 'undefined'
+    && typeof URL.createObjectURL === 'function';
+  if (canDownload){
+    try {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type:'text/plain;charset=utf-8' }));
+      a.download = name;
+      if (typeof a.click === 'function') a.click();
+      toast('已导出 ' + name);
+      return;
+    } catch(e){ logErr('日志', '生成日志文件失败，改为复制：' + e.message, e); }
+  }
+  toast((await copyText(text)) ? '当前环境不支持下载，已复制日志' : '复制失败');
+});
+$('#btnClear').addEventListener('click', () => {
+  try { localStorage.setItem(KEY_LOG, '[]'); } catch(e){}
+  $('#log').innerHTML = '';
+  log('🧹 已清空全部日志', 'info', { tag:'日志' });
+});
+
+$('#btnCfg').addEventListener('click', () => {
+  const box = $('#panelBox'), show = box.style.display === 'none';
+  box.style.display = show ? 'block' : 'none';
+  if (show){
+    const p = loadP();
+    $('#pbase').value = p.base || ''; $('#puser').value = p.user || ''; $('#ppass').value = p.pass || '';
+  }
+});
+$('#btnSaveCfg').addEventListener('click', () => {
+  const base = $('#pbase').value.trim();
+  saveP({ base, user: $('#puser').value.trim(), pass: $('#ppass').value.trim() });
+  log('⚙️ 面板配置已保存：' + safe(base), 'info', { tag:'配置' });
+  try {
+    log('   规范化地址：' + WbDiag.normalizeBase(base), 'info', { tag:'面板地址', from:safe(base) });
+  } catch(e){
+    logErr('面板地址', '面板地址校验失败：' + e.message, e);
+  }
+  toast('已保存');
+});
+$('#btnClearCfg').addEventListener('click', () => {
+  localStorage.removeItem(KEY_P);
+  $('#pbase').value = ''; $('#puser').value = ''; $('#ppass').value = '';
+  log('⚙️ 已清除面板配置', 'info', { tag:'配置' }); toast('已清除');
+});
+$('#btnPush').addEventListener('click', async () => {
+  if (busy) return;
+  const p = loadP(), a = loadA();
+  if (!p.base || !p.user || !p.pass){
+    $('#panelBox').style.display = 'block'; toast('请先配置青龙面板');
+    log('⚠️ 推送中止：面板配置不完整', 'warn', { tag:'推送' }); return;
+  }
+  if (!a.length){ toast('还没有已保存的账号'); return; }
+
+  try {
+    log('   规范化地址：' + WbDiag.normalizeBase(p.base), 'info', { tag:'面板地址', from:safe(p.base) });
+  } catch(e){ logErr('面板地址', '面板地址校验失败：' + e.message, e); }
+
+  setBusy(true);
+  log('☁️ 正在写入青龙面板 ' + safe(p.base) + ' …', 'info',
+      { tag:'推送', accounts:a.length, base:safe(p.base) });
+  try {
+    const r = await api('/api/panel/push', { base:p.base, user:p.user, pass:p.pass, accounts:a });
+    if (r && r.diag){
+      log('   请求链：' + safe(JSON.stringify(r.diag)).slice(0, 1200), 'info', { tag:'推送诊断' });
+    }
+    log((r.ok ? '✅ ' : '❌ ') + r.msg, r.ok ? 'ok' : 'err',
+        { tag:'推送', status:r.status, total:r.total, added:r.added, updated:r.updated });
+    if (!r.ok){
+      logErr('推送', '面板推送失败：' + r.msg, {
+        name:'PanelPushError', message:r.msg,
+        stack:(r.detail || []).map(x => JSON.stringify(x)).join('\n'),
+      });
+    }
+    toast(r.ok ? '面板变量已更新' : '推送失败，请看日志');
+  } catch(e){ logErr('推送', '面板推送失败：' + e.message, e); }
+  finally { setBusy(false); }
+});
+
+restoreLogs();
+log('就绪 · 页面与接口同源，请求由本地 Node 代理转发', 'info', { tag:'启动' });
+log('提示：验证码 5 分钟内有效；日志已持久化并脱敏，异常会记录完整堆栈。', 'info', { tag:'启动' });
+if (WbDiag.VERSION === 'inline-fallback') {
+  log('⚠️ 未加载 /diag.js，使用内联降级规则；请通过 node server.js 访问以获得完整诊断能力。', 'warn', { tag:'启动' });
+}
+render();
+</script>
+</body>
+</html>

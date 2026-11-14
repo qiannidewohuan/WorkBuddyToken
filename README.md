@@ -96,6 +96,10 @@ WorkBuddy 桌面端把登录凭据加密保存在本地（`$wbEncrypted`，密�
 │   ├── ARCHITECTURE.md            # 技术架构、安全模型、踩坑记录
 │   ├── CHANGELOG.md               # 版本历史
 │   └── RELEASE.md                 # 发版流程
+├── web/                           # 桌面调试形态（R-12，不装 App 也能登录+推送）
+│   ├── index.html                 # 页面（日志存 localStorage）
+│   ├── server.js                  # 本地反向代理，绕过 CORS，仅监听内网
+│   └── diag.js                    # 与 App 同规则的脱敏 + 地址规范化，浏览器/Node 共用
 └── .github/workflows/build-apk.yml # 云构建 + 自动 Release
 ```
 
