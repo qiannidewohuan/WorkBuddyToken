@@ -57,7 +57,7 @@ MainActivity            界面与流程编排（登录、列表、面板配置�
 
 ### 4.3 面板地址必须先规范化（v1.1.0 修复的线上问题）
 
-实机报错：`no protocol: 192.168.124.11:5700/api/auth/login`。
+实机报错：`no protocol: 192.168.1.10:5700/api/auth/login`。
 
 根因：用户输入时省略 `http://`，旧代码只补 `/api` 就直接 `new URL()`，抛 `MalformedURLException`，
 而当时的日志只有一句 toast，无堆栈、无请求上下文，问题定位不到。

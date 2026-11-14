@@ -22,7 +22,7 @@ import java.util.Locale;
  * WORKBUDDY_REFRESH_TOKEN 变量，行为与 panel-env-set.js 一致。
  * 面板通常是局域网 http 地址，故 Manifest 允许 cleartext；WorkBuddy 接口始终 https。
  *
- * v1.1.0：修复「面板推送失败: no protocol: 192.168.124.11:5700/api/auth/login」
+ * v1.1.0：修复「面板推送失败: no protocol: 192.168.1.10:5700/api/auth/login」
  * —— 用户填的地址常省略 http://，旧版直接 new URL() 抛 MalformedURLException，
  * 屏上只显示一行摘要、无堆栈、重启即丢。现在自动补全协议并全链路写 AppLog。
  */
@@ -148,7 +148,7 @@ public final class QlPanel {
 
     /**
      * 地址规范化：允许省略协议、允许带 /api、允许尾斜杠。
-     * 例：192.168.124.11:5700 → http://192.168.124.11:5700/api
+     * 例：192.168.1.10:5700 → http://192.168.1.10:5700/api
      */
     public static String normalize(String base) throws Exception {
         String raw = base == null ? "" : base;
@@ -162,7 +162,7 @@ public final class QlPanel {
         }
         b = b.replaceFirst("[?#].*$", "");
         if (!b.matches("(?i)^https?://[^/\\s]+.*")) {
-            throw fail("面板地址缺少主机名（示例 http://192.168.124.11:5700）：" + AppLog.sanitize(raw), null);
+            throw fail("面板地址缺少主机名（示例 http://192.168.1.10:5700）：" + AppLog.sanitize(raw), null);
         }
         if (b.matches("(?i)^https?://[^/@]+:[^/@]+@.*")) {
             throw fail("面板地址不支持内嵌用户名密码，请单独填写用户名与密码", null);
@@ -183,7 +183,7 @@ public final class QlPanel {
                 throw fail("面板地址协议不支持（仅 http/https）：" + AppLog.sanitize(raw), null);
             }
         } catch (MalformedURLException e) {
-            throw fail("面板地址格式不合法（示例 http://192.168.124.11:5700）：" + e.getMessage(), e);
+            throw fail("面板地址格式不合法（示例 http://192.168.1.10:5700）：" + e.getMessage(), e);
         }
         AppLog.i("面板地址", "规范化结果：" + AppLog.sanitize(raw) + " → " + AppLog.sanitize(b));
         return b;

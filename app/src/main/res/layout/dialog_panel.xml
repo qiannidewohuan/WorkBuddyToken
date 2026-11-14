@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"
         android:background="@drawable/bg_input"
-        android:hint="http://192.168.124.11:5700"
+        android:hint="http://192.168.1.10:5700"
         android:inputType="textUri"
         android:padding="12dp"
         android:singleLine="true"
