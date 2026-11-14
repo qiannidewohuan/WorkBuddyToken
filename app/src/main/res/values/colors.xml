@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#2563EB</color>
+    <color name="primary_dark">#1D4ED8</color>
+    <color name="bg">#F4F6FB</color>
+    <color name="card">#FFFFFF</color>
+    <color name="text">#1F2937</color>
+    <color name="muted">#6B7280</color>
+    <color name="divider">#E5E7EB</color>
+    <color name="success">#16A34A</color>
+    <color name="danger">#DC2626</color>
+    <color name="input_bg">#F9FAFB</color>
+    <color name="badge_bg">#EEF4FF</color>
+    <color name="ic_launcher_background">#2563EB</color>
+</resources>

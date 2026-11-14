@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 仅允许明文 HTTP 用于用户自己填写的局域网青龙面板；WorkBuddy 接口一律 HTTPS。
+     只信任系统 CA，避免被自签证书的中间人代理截获 token。 -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,151 @@
+name: Build Android APK
+
+# 触发方式：
+#   1) push 到 main 且改动了源码/构建配置 → 只构建，检查是否还能出包（不建 Release，避免刷版）
+#   2) push 形如 v1.2.0 的 tag            → 构建成功后自动创建 Release 并挂载 APK
+#   3) 手动 Run workflow（可填版本号）    → 同上，留空则用 app/build.gradle 的 versionName
+#
+# 注意：GitHub 对 tag push 不评估 paths 过滤，所以 tags 与 paths 写在同一个 push 块里是安全的。
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release 版本号（如 v1.1.0）。留空则取 app/build.gradle 的 versionName'
+        required: false
+        default: ''
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/**'
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # 创建 Release / tag 需要
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # GitHub runner 已预装 Android SDK / cmdline-tools。
+      # 不要用 android-actions/setup-android@v3：它会执行 `sdkmanager tools`，
+      # 而新版 cmdline-tools(16.0) 已移除旧 tools 包，会报
+      # "Failed to find package 'tools'" 并让整个 job 失败。
+      - name: Android SDK packages
+        run: |
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          SM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SM" ]; then
+            SM="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -1)"
+          fi
+          echo "sdkmanager = $SM"
+          test -x "$SM" || { echo "sdkmanager not found"; exit 1; }
+          yes | "$SM" --licenses > /dev/null 2>&1 || true
+          "$SM" --install "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
+          echo "--- installed ---"
+          "$SM" --list_installed | grep -E "platforms;android-34|build-tools;34\.0\.0" || true
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Upload debug APK (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorkBuddyToken-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Build release APK (signed with debug key for sideload)
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Upload release APK (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorkBuddyToken-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      # ---------- Release ----------
+      - name: 计算版本与 tag
+        id: ver
+        run: |
+          VN="$(grep -oP "versionName\s+'\K[^']+" app/build.gradle || true)"
+          VC="$(grep -oP "versionCode\s+\K[0-9]+" app/build.gradle || true)"
+          if [ -z "$VN" ]; then echo "无法从 app/build.gradle 读取 versionName"; exit 1; fi
+
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          elif [ -n "${{ inputs.version }}" ]; then
+            TAG="${{ inputs.version }}"
+          else
+            TAG="v$VN"
+          fi
+          case "$TAG" in v*) ;; *) TAG="v$TAG" ;; esac
+
+          echo "version_name=$VN" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VC" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "版本 $VN (code $VC) → tag $TAG"
+
+      - name: 准备 Release 附件
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          mkdir -p release-assets
+          cp app/build/outputs/apk/release/app-release.apk "release-assets/WorkBuddyToken-${TAG}-release.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk     "release-assets/WorkBuddyToken-${TAG}-debug.apk"
+          ls -l release-assets
+
+      - name: 创建/更新 Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          files: |
+            release-assets/*.apk
+          generate_release_notes: false
+          draft: false
+          prerelease: false
+          make_latest: true
+          body: |
+            ## WorkBuddy Token App ${{ steps.ver.outputs.tag }}
+
+            - 版本：`${{ steps.ver.outputs.version_name }}` (versionCode `${{ steps.ver.outputs.version_code }}`)
+            - 提交：`${{ github.sha }}`
+            - 构建：GitHub Actions [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ### 安装
+            1. 下载 `WorkBuddyToken-${{ steps.ver.outputs.tag }}-release.apk`；
+            2. 手机上允许「未知来源」安装（release 包复用 debug 签名，可直接覆盖升级，无需卸载）；
+            3. 覆盖安装不会清空已保存的账号凭据。
+
+            ### 本次变更
+            详见 [`docs/CHANGELOG.md`](https://github.com/${{ github.repository }}/blob/${{ steps.ver.outputs.tag }}/docs/CHANGELOG.md)。
+
+            ### 需求说明
+            功能需求与验收标准见 [`docs/REQUIREMENTS.md`](https://github.com/${{ github.repository }}/blob/${{ steps.ver.outputs.tag }}/docs/REQUIREMENTS.md)。
