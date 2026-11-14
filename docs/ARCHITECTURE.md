@@ -1,5 +1,9 @@
 # 技术架构与关键决策
 
+> 上游依据：本项目**依据 [L0NE-6/WorkBuddy-Daily](https://github.com/L0NE-6/WorkBuddy-Daily) 打包自用**，
+> 是它的「取令牌」配套工具（把 `手机号:AT:RT` 写进面板 `WORKBUDDY_REFRESH_TOKEN`），
+> 不修改、不内置上游脚本；定位与边界见 [REQUIREMENTS.md §1.4](REQUIREMENTS.md)。
+
 ## 1. 模块划分
 
 ```

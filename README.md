@@ -9,6 +9,28 @@
 | 当前版本 | **v1.1.0**（versionCode 2） |
 | 安装包 | 见 [Releases](../../releases) —— `app-release.apk` 为直装包 |
 | 构建 | GitHub Actions 自动出包，产物同时上传到 Release |
+| 上游依据 | 依据 [L0NE-6/WorkBuddy-Daily](https://github.com/L0NE-6/WorkBuddy-Daily) **打包自用** |
+
+---
+
+## 项目来源与定位
+
+本项目**依据 [L0NE-6/WorkBuddy-Daily](https://github.com/L0NE-6/WorkBuddy-Daily) 打包自用**。
+
+上游提供的是 WorkBuddy 成长中心签到脚本（青龙面板 / GitHub Actions 运行），运行前提是环境变量
+`WORKBUDDY_REFRESH_TOKEN`，格式为每行一个 `手机号:AT:RT` 的刷新令牌。上游本身不解决"令牌怎么来"这件事
+（桌面端凭据加密落盘、离线不可解），本 App 就是补这一环的**配套取令牌工具**：
+
+```
+手机短信登录 → 取 AT/RT → 本机加密保存 → 按上游格式写入面板 → 上游脚本定时续期与做任务
+```
+
+边界约定：
+
+- **不修改、不内置上游脚本**，与上游仓库无代码耦合（无 submodule、无自动同步）；
+- 本项目的价值只在"取令牌 + 写面板"，签到、任务、积分、推送等能力一律以上游为准；
+- 上游 `WORKBUDDY_REFRESH_TOKEN` 的格式若变化，只需改本项目的 R-06 / R-08 两处适配；
+- 仅个人自用，不承诺维护节奏，也不代管上游能力问题。
 
 ---
 
@@ -52,7 +74,7 @@ WorkBuddy 桌面端把登录凭据加密保存在本地（`$wbEncrypted`，密�
 | R-10 | 持久化诊断日志（查看/导出/清空） | ✅ v1.1.0 |
 | R-11 | 凭据脱敏（日志、UI、导出） | ✅ |
 | R-12 | Web 预览版（CORS 反向代理） | ✅ |
-| R-13 | 复制单行按钮 | ⛔ 已撤回 |
+| X-01 | 复制单行按钮 | ⛔ 已撤回 |
 
 ---
 
